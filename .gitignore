@@ -1,0 +1,5 @@
+# IDE files
+.idea
+*.iml
+# SBT files
+target
