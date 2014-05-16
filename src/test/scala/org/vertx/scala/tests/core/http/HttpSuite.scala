@@ -77,4 +77,18 @@ class HttpSuite extends FunSuite with TestKitBase {
     }
   }
 
+  test("An HTTP client should retrieve static content using post() method") {
+    verticle {
+      val server = createHttpServer().handler[HttpServerRequest](_.response().end("post me"))
+      for {
+        listening <- server.listen(testPort)
+        resp <- createHttpClient().port(testPort).post("/").end()
+        body <- resp.body()
+      } yield {
+        resp.status() shouldBe StatusCodes.OK
+        body.toString shouldBe "post me"
+      }
+    }
+  }
+
 }

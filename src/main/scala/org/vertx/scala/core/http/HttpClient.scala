@@ -3,7 +3,7 @@ package org.vertx.scala.core.http
 import org.vertx.java.core.http.{ HttpClient => JHttpClient }
 import org.vertx.scala.FutureOps._
 import org.vertx.scala.HandlerOps._
-import scala.concurrent.Future
+import scala.concurrent.{Promise, Future}
 
 final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
 
@@ -24,6 +24,12 @@ final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
       asJava.exceptionHandler(p)
       asJava.getNow(uri, promiseToHandlerWithPause(HttpClientResponse.apply)(p))
     }
+  }
+
+  def post(uri: String): HttpClientRequest = {
+    val promise = Promise[HttpClientResponse]()
+    val clientRequest = asJava.post(uri, promiseToHandlerWithPause(HttpClientResponse.apply)(promise))
+    HttpClientRequest(clientRequest, promise.future)
   }
 
 }
