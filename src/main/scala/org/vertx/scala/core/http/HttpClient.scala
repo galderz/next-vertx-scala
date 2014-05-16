@@ -13,6 +13,12 @@ final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
 
   def port(): Int = asJava.getPort
 
+  def compression(compression: Boolean): HttpClient = {
+    asJava.setTryUseCompression(compression); this
+  }
+
+  def compression(): Boolean = asJava.getTryUseCompression
+
   def getNow(uri: String): Future[HttpClientResponse] = {
     future[HttpClientResponse] { p =>
       asJava.exceptionHandler(p)

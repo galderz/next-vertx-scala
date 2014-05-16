@@ -2,21 +2,25 @@ package org.vertx.scala.tests.core.http
 
 import org.scalatest.FunSuite
 import org.vertx.scala.testkit.TestKitBase
-import org.vertx.scala.core.http.{StatusCodes, HttpServerRequest}
+import org.vertx.scala.core.http.{HttpClient, HttpServer, StatusCodes, HttpServerRequest}
 
 class HttpSuite extends FunSuite with TestKitBase {
 
   val testPort = 8844
 
+  def createHttpServer(): HttpServer = vertx.createHttpServer()
+
+  def createHttpClient(): HttpClient = vertx.createHttpClient()
+
   test("An HTTP server should respond successfully") {
     verticle {
-      val server = vertx.createHttpServer().handler[HttpServerRequest] {
+      val server = createHttpServer().handler[HttpServerRequest] {
         _.response().end("ignore")
       }
 
       for {
         listening <- server.listen(testPort)
-        resp <- vertx.createHttpClient().port(testPort).getNow("/")
+        resp <- createHttpClient().port(testPort).getNow("/")
       } yield {
         resp.status() shouldBe StatusCodes.OK
       }

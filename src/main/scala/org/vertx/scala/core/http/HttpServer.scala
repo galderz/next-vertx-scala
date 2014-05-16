@@ -13,9 +13,14 @@ final class HttpServer private[scala] (val asJava: JHttpServer) extends AnyVal {
 
   def handler[T: HttpServerHandlerLike](f: T => Unit): HttpServer = {
     val handlerLike = implicitly[HttpServerHandlerLike[T]]
-    handlerLike.handle(f, this)
-    this
+    handlerLike.handle(f, this); this
   }
+
+  def compression(compression: Boolean): HttpServer = {
+    asJava.setCompressionSupported(compression); this
+  }
+
+  def compression(): Boolean = asJava.isCompressionSupported
 
   def listen(port: Int, host: String = "0.0.0.0")(implicit ec: ExecutionContext): Future[HttpServer] = {
     future[HttpServer](p => asJava.listen(port, promiseToHandlerAR(HttpServer.apply)(p)))
