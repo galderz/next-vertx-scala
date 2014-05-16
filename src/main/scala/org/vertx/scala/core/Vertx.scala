@@ -2,7 +2,7 @@ package org.vertx.scala.core
 
 import org.vertx.java.core.{ Vertx => JVertx }
 import org.vertx.scala.core.http.{HttpClient, HttpServer}
-import org.vertx.scala.Handlers._
+import org.vertx.scala.HandlerOps._
 
 final class Vertx private[scala] (val asJava: JVertx) extends AnyVal {
 

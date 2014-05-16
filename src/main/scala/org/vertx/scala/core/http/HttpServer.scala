@@ -1,45 +1,45 @@
 package org.vertx.scala.core.http
 
-import org.vertx.java.core.http.{ HttpServer => JHttpServer }
-import scala.concurrent.{Promise, ExecutionContext, Future}
-import org.vertx.scala.core.{Vertx, VertxExecutionContext}
-import org.vertx.java.core.{AsyncResult, Handler}
-import org.vertx.scala.Handlers._
+import org.vertx.java.core.http.{HttpServer => JHttpServer }
+import org.vertx.java.core.http.{ HttpServerRequest => JHttpServerRequest }
+import org.vertx.scala.FutureOps._
+import org.vertx.scala.HandlerOps._
+import scala.concurrent.{ExecutionContext, Future}
+import org.vertx.java.core.Handler
 
 final class HttpServer private[scala] (val asJava: JHttpServer) extends AnyVal {
 
-  // implicit val executionContext = VertxExecutionContext.fromVertx(vertx)
+  import HttpServer._
 
-  def handler[T: HandlerLike](f: T => Unit): HttpServer = {
-    val handlerLike = implicitly[HandlerLike[T]]
+  def handler[T: HttpServerHandlerLike](f: T => Unit): HttpServer = {
+    val handlerLike = implicitly[HttpServerHandlerLike[T]]
     handlerLike.handle(f, this)
     this
   }
 
   def listen(port: Int, host: String = "0.0.0.0")(implicit ec: ExecutionContext): Future[HttpServer] = {
-    val promise = Promise[HttpServer]()
-    // TODO: Refactor handler...
-    asJava.listen(port, new Handler[AsyncResult[JHttpServer]] {
-      override def handle(event: AsyncResult[JHttpServer]): Unit = {
-        if (event.succeeded()) promise.success(HttpServer(event.result()))
-        else promise.failure(event.cause())
-      }
-    })
-    promise.future
+    future[HttpServer](p => asJava.listen(port, promiseToHandlerAR(HttpServer.apply)(p)))
   }
 
   def close(): Future[Unit] = {
-    val promise = Promise[Unit]()
-    asJava.close(new Handler[AsyncResult[Void]] {
-      override def handle(event: AsyncResult[Void]): Unit = {
-        promise.success()
-      }
-    })
-    promise.future
+    future[Unit](p => asJava.close(p))
   }
 
 }
 
 object HttpServer {
   def apply(asJava: JHttpServer) = new HttpServer(asJava)
+
+  trait HttpServerHandlerLike[T] {
+    def handle(fn: T => Unit, s: HttpServer)
+  }
+
+  object HttpServerHandlerLike {
+    implicit object HttpServerRequestHandler extends HttpServerHandlerLike[HttpServerRequest] {
+      def handle(func: HttpServerRequest => Unit, s: HttpServer) = {
+        s.asJava.requestHandler(functionToHandler(HttpServerRequest.apply)(func))
+      }
+    }
+  }
+
 }

@@ -1,17 +1,16 @@
 package org.vertx.scala.testkit
 
-import org.vertx.java.platform.{PlatformLocator, PlatformManager}
-import org.scalatest.{BeforeAndAfterAll, Matchers, Suite, BeforeAndAfter}
-import org.vertx.scala.core.{VertxExecutionContext, Vertx}
-import org.vertx.scala.platform.Verticle
 import java.net.{URLClassLoader, URL}
+import org.scalatest.{BeforeAndAfterAll, Matchers, Suite}
+import org.vertx.java.platform.PlatformLocator
+import org.vertx.scala.HandlerOps._
+import org.vertx.scala.core.{VertxExecutionContext, Vertx}
 import scala.collection.mutable
-import org.vertx.java.core.{Handler, AsyncResult}
 import scala.concurrent.{Future, Await, Promise}
-import org.vertx.scala.Handlers._
-import scala.concurrent.duration._
 
 trait TestKitBase extends BeforeAndAfterAll with Matchers { this: Suite =>
+
+  import TestKitBase._
 
   System.setProperty("vertx.langs..", "scala") // override default via system property
 
@@ -30,33 +29,39 @@ trait TestKitBase extends BeforeAndAfterAll with Matchers { this: Suite =>
   def verticle[T](action: => Future[T]): Unit = {
     deployVerticle(() => action)
     try {
-      Await.result(TestKitBase.future, 10 seconds)
+      await(TestVerticle.future)
     } finally {
-      val promise = Promise[Unit]()
-      platform.undeployAll(new Handler[AsyncResult[Void]] {
-        override def handle(event: AsyncResult[Void]): Unit = {
-          promise.success()
-        }
-      })
-      Await.result(promise.future, 10 second)
+      until[Unit](platform.undeployAll(_))
     }
   }
 
   def verticleThrows[E <: AnyRef](action: => Future[Any])(implicit manifest: Manifest[E]): Unit = {
     deployVerticle(() => action)
-    an [E] should be thrownBy Await.result(TestKitBase.future, 10 seconds)
+    an [E] should be thrownBy await(TestVerticle.future)
   }
 
   private def deployVerticle[T](action: () => Future[T]): Unit = {
-    val p = Promise[String]()
-    val handler: AsyncResult[String] => Unit = { res =>
-      if (res.succeeded()) p.success(res.result()) else p.failure(res.cause())
-    }
+    TestVerticle.action = action
+    until[String] {
+      platform.deployVerticle(classOf[TestVerticle].getName, null, findURLs().orNull, 1, null, _)
+    } should startWith ("deployment-")
+  }
 
-    TestKitBase.action = action
-    platform.deployVerticle(classOf[TestKitBase.TestVerticle].getName, null, findURLs().orNull, 1, null, handler)
-    // TODO: Refactor this awaits...
-    Await.result(p.future, 60 second) should startWith ("deployment-")
+}
+
+object TestKitBase {
+
+  import TestKitSettings._
+  import scala.concurrent.duration._
+
+  def until[T](func: Promise[T] => Unit): T = {
+    val promise = Promise[T]()
+    func(promise)
+    await(promise.future)
+  }
+
+  def await[T](future: Future[T]): T = {
+    Await.result(future, (DefaultTimeout * TestTimeFactor).seconds)
   }
 
   private def findURLs(): Option[Array[URL]] = {
@@ -70,20 +75,7 @@ trait TestKitBase extends BeforeAndAfterAll with Matchers { this: Suite =>
             urls += url
         }
         Some(urls.toArray)
-      case _ => None
-    }
-  }
-
-}
-
-object TestKitBase {
-
-  var action: () => Future[Any] = _
-  var future: Future[Any] = _
-
-  class TestVerticle extends Verticle {
-    override def start(): Unit = {
-      future = action.apply()
+      case _ => Some(Array[URL]())
     }
   }
 
