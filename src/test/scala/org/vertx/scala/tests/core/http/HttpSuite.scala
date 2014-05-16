@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import org.vertx.scala.testkit.TestKitBase
 import org.vertx.scala.core.http.{HttpClient, HttpServer, StatusCodes, HttpServerRequest}
 import org.vertx.scala._
+import java.net.UnknownHostException
 
 class HttpSuite extends FunSuite with TestKitBase {
 
@@ -64,9 +65,15 @@ class HttpSuite extends FunSuite with TestKitBase {
 
   test("An HTTP server should fail to start with an invalid port") {
     verticleThrows[IllegalArgumentException] {
-      // Handler must be set :|
-      val server = createHttpServer().handler[HttpServerRequest]{ r => }
+      val server = createHttpServer().handler[HttpServerRequest]{ r => } // Handler must be set :|
       server.listen(1128371831)
+    }
+  }
+
+  test("An HTTP server should fail to start with an invalid host") {
+    verticleThrows[UnknownHostException] {
+      val server = createHttpServer().handler[HttpServerRequest]{ r => } // Handler must be set :|
+      server.listen(testPort, "iqwjdoqiwjdoiqwdiojwd")
     }
   }
 

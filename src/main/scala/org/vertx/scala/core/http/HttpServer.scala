@@ -1,11 +1,10 @@
 package org.vertx.scala.core.http
 
-import org.vertx.java.core.http.{HttpServer => JHttpServer }
 import org.vertx.java.core.http.{ HttpServerRequest => JHttpServerRequest }
+import org.vertx.java.core.http.{HttpServer => JHttpServer }
 import org.vertx.scala.FutureOps._
 import org.vertx.scala.HandlerOps._
 import scala.concurrent.{ExecutionContext, Future}
-import org.vertx.java.core.Handler
 
 final class HttpServer private[scala] (val asJava: JHttpServer) extends AnyVal {
 
@@ -23,7 +22,7 @@ final class HttpServer private[scala] (val asJava: JHttpServer) extends AnyVal {
   def compression(): Boolean = asJava.isCompressionSupported
 
   def listen(port: Int, host: String = "0.0.0.0")(implicit ec: ExecutionContext): Future[HttpServer] = {
-    future[HttpServer](p => asJava.listen(port, promiseToHandlerAR(HttpServer.apply)(p)))
+    future[HttpServer](p => asJava.listen(port, host, promiseToHandlerAR(HttpServer.apply)(p)))
   }
 
   def close(): Future[Unit] = {
