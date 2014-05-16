@@ -1,6 +1,7 @@
 package org.vertx.scala.core.http
 
 import org.vertx.java.core.http.{ HttpClient => JHttpClient }
+import org.vertx.java.core.http.{ HttpClientRequest => JHttpClientRequest }
 import org.vertx.scala.FutureOps._
 import org.vertx.scala.HandlerOps._
 import scala.concurrent.{Promise, Future}
@@ -22,20 +23,34 @@ final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
   def getNow(uri: String): Future[HttpClientResponse] = {
     future[HttpClientResponse] { p =>
       asJava.exceptionHandler(p)
-      asJava.getNow(uri, promiseToHandlerWithPause(HttpClientResponse.apply)(p))
+      asJava.getNow(uri, p)
     }
   }
 
   def post(uri: String): HttpClientRequest = {
-    val promise = Promise[HttpClientResponse]()
-    val clientRequest = asJava.post(uri, promiseToHandlerWithPause(HttpClientResponse.apply)(promise))
-    HttpClientRequest(clientRequest, promise.future)
+    httpMethod(asJava.post(uri, _))
   }
 
   def get(uri: String): HttpClientRequest = {
-    val promise = Promise[HttpClientResponse]()
-    val clientRequest = asJava.get(uri, promiseToHandlerWithPause(HttpClientResponse.apply)(promise))
-    HttpClientRequest(clientRequest, promise.future)
+    httpMethod(asJava.get(uri, _))
+  }
+
+  def head(uri: String): HttpClientRequest = {
+    httpMethod(asJava.head(uri, _))
+  }
+
+  def connect(uri: String): HttpClientRequest = {
+    httpMethod(asJava.connect(uri, _))
+  }
+
+  def put(uri: String): HttpClientRequest = {
+    httpMethod(asJava.put(uri, _))
+  }
+
+  private def httpMethod(method: Promise[HttpClientResponse] => JHttpClientRequest): HttpClientRequest = {
+    val p = Promise[HttpClientResponse]()
+    val clientRequest = method(p)
+    HttpClientRequest(clientRequest, p.future)
   }
 
 }

@@ -4,7 +4,9 @@ import org.vertx.java.core.buffer.{ Buffer => JBuffer }
 
 final class Buffer private[scala] (val asJava: JBuffer) extends AnyVal {
 
-  override def toString: String = asJava.toString
+  def length(): Int = asJava.length()
+
+  def string(enc: String = "UTF-8"): String = asJava.toString(enc)
 
 }
 

@@ -14,6 +14,8 @@ class HttpSuite extends FunSuite with TestKitBase {
 
   def createHttpClient(): HttpClient = vertx.createHttpClient()
 
+  // TODO: Add test - An HTTP client should successfully call connect() method
+
   test("An HTTP server should serve static content") {
     verticle {
       val server = createHttpServer().handler[HttpServerRequest](_.response().end("hello world!"))
@@ -23,7 +25,7 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.toString shouldBe "hello world!"
+        body.string() shouldBe "hello world!"
       }
     }
   }
@@ -46,7 +48,7 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.toString shouldBe "hello encrypted world!"
+        body.string() shouldBe "hello encrypted world!"
       }
     }
   }
@@ -73,6 +75,12 @@ class HttpSuite extends FunSuite with TestKitBase {
     httpMethod(_.get("/"), "get() me")
   }
 
+  test("An HTTP client should retrieve static content using put() method") {
+    httpMethod(_.put("/"), "put() me")
+  }
+
+  // TODO: Add tests for delete, options, trace...
+
   private def httpMethod(method: HttpClient => HttpClientRequest, msg: String): Unit = {
     verticle {
       val server = createHttpServer().handler[HttpServerRequest](_.response().end(msg))
@@ -82,7 +90,25 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.toString shouldBe msg
+        body.string() shouldBe msg
+      }
+    }
+  }
+
+  test("An HTTP client should successfully call head() method") {
+    httpMethod(_.head("/"))
+  }
+
+  private def httpMethod(method: HttpClient => HttpClientRequest): Unit = {
+    verticle {
+      val server = createHttpServer().handler[HttpServerRequest](_.response().end("ignore"))
+      for {
+        listening <- server.listen(testPort)
+        resp <- method(createHttpClient().port(testPort)).end()
+        body <- resp.body()
+      } yield {
+        resp.status() shouldBe StatusCodes.OK
+        body.length() shouldBe 0
       }
     }
   }
