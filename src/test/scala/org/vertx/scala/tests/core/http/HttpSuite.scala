@@ -2,7 +2,7 @@ package org.vertx.scala.tests.core.http
 
 import org.scalatest.FunSuite
 import org.vertx.scala.testkit.TestKitBase
-import org.vertx.scala.core.http.{HttpClient, HttpServer, StatusCodes, HttpServerRequest}
+import org.vertx.scala.core.http._
 import org.vertx.scala._
 import java.net.UnknownHostException
 
@@ -13,18 +13,6 @@ class HttpSuite extends FunSuite with TestKitBase {
   def createHttpServer(): HttpServer = vertx.createHttpServer()
 
   def createHttpClient(): HttpClient = vertx.createHttpClient()
-
-  test("An HTTP server should respond successfully") {
-    verticle {
-      val server = createHttpServer().handler[HttpServerRequest](_.response().end("ignore"))
-      for {
-        listening <- server.listen(testPort)
-        resp <- createHttpClient().port(testPort).getNow("/")
-      } yield {
-        resp.status() shouldBe StatusCodes.OK
-      }
-    }
-  }
 
   test("An HTTP server should serve static content") {
     verticle {
@@ -78,15 +66,23 @@ class HttpSuite extends FunSuite with TestKitBase {
   }
 
   test("An HTTP client should retrieve static content using post() method") {
+    httpMethod(_.post("/"), "post() me")
+  }
+
+  test("An HTTP client should retrieve static content using get() method") {
+    httpMethod(_.get("/"), "get() me")
+  }
+
+  private def httpMethod(method: HttpClient => HttpClientRequest, msg: String): Unit = {
     verticle {
-      val server = createHttpServer().handler[HttpServerRequest](_.response().end("post me"))
+      val server = createHttpServer().handler[HttpServerRequest](_.response().end(msg))
       for {
         listening <- server.listen(testPort)
-        resp <- createHttpClient().port(testPort).post("/").end()
+        resp <- method(createHttpClient().port(testPort)).end()
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.toString shouldBe "post me"
+        body.toString shouldBe msg
       }
     }
   }

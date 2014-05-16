@@ -32,6 +32,12 @@ final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
     HttpClientRequest(clientRequest, promise.future)
   }
 
+  def get(uri: String): HttpClientRequest = {
+    val promise = Promise[HttpClientResponse]()
+    val clientRequest = asJava.get(uri, promiseToHandlerWithPause(HttpClientResponse.apply)(promise))
+    HttpClientRequest(clientRequest, promise.future)
+  }
+
 }
 
 object HttpClient {
