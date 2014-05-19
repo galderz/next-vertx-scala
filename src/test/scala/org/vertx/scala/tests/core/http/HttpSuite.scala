@@ -5,6 +5,7 @@ import org.vertx.scala.testkit.TestKitBase
 import org.vertx.scala.core.http._
 import org.vertx.scala._
 import java.net.UnknownHostException
+import org.vertx.scala.core.http.HttpMethods._
 
 class HttpSuite extends FunSuite with TestKitBase {
 
@@ -15,6 +16,7 @@ class HttpSuite extends FunSuite with TestKitBase {
   def createHttpClient(): HttpClient = vertx.createHttpClient()
 
   // TODO: Add test - An HTTP client should successfully call connect() method
+  // TODO: Add test - An HTTP client should successfully send a CONNECT request
 
   test("An HTTP server should serve static content") {
     verticle {
@@ -67,19 +69,53 @@ class HttpSuite extends FunSuite with TestKitBase {
     }
   }
 
-  test("An HTTP client should retrieve static content using post() method") {
-    httpMethod(_.post("/"), "post() me")
-  }
-
   test("An HTTP client should retrieve static content using get() method") {
     httpMethod(_.get("/"), "get() me")
   }
 
-  test("An HTTP client should retrieve static content using put() method") {
+  test("An HTTP client should receive response to the put() method") {
     httpMethod(_.put("/"), "put() me")
   }
 
-  // TODO: Add tests for delete, options, trace...
+  test("An HTTP client should receive response to the post() method") {
+    httpMethod(_.post("/"), "post() me")
+  }
+
+  test("An HTTP client should receive response to the options() method") {
+    httpMethod(_.options("/"), "options() me")
+  }
+
+  test("An HTTP client should receive response to the trace() method") {
+    httpMethod(_.trace("/"), "trace() me")
+  }
+
+  test("An HTTP client should receive response to the patch() method") {
+    httpMethod(_.patch("/"), "patch() me")
+  }
+
+  test("An HTTP client should retrieve static content using GET request") {
+    httpMethod(_.request(GET, "/"), "GET me")
+  }
+
+  test("An HTTP client should receive response to a PUT request") {
+    httpMethod(_.request(PUT, "/"), "PUT me")
+  }
+
+  test("An HTTP client should receive response to a POST request") {
+    httpMethod(_.request(POST, "/"), "POST me")
+  }
+
+  test("An HTTP client should receive response to an OPTIONS request") {
+    httpMethod(_.request(OPTIONS, "/"), "OPTIONS me")
+  }
+
+  test("An HTTP client should receive response to a TRACE request") {
+    httpMethod(_.request(TRACE, "/"), "TRACE me")
+  }
+
+  test("An HTTP client should receive response to a PATCH method") {
+    httpMethod(_.request(PATCH, "/"), "PATCH me")
+  }
 
   private def httpMethod(method: HttpClient => HttpClientRequest, msg: String): Unit = {
     verticle {
@@ -97,6 +133,10 @@ class HttpSuite extends FunSuite with TestKitBase {
 
   test("An HTTP client should successfully call head() method") {
     httpMethod(_.head("/"))
+  }
+
+  test("An HTTP client should successfully send a HEAD request") {
+    httpMethod(_.request(HEAD, "/"))
   }
 
   private def httpMethod(method: HttpClient => HttpClientRequest): Unit = {

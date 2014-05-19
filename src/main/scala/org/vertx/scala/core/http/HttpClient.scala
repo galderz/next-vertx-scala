@@ -47,6 +47,26 @@ final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
     httpMethod(asJava.put(uri, _))
   }
 
+  def delete(uri: String): HttpClientRequest = {
+    httpMethod(asJava.delete(uri, _))
+  }
+
+  def options(uri: String): HttpClientRequest = {
+    httpMethod(asJava.options(uri, _))
+  }
+
+  def trace(uri: String): HttpClientRequest = {
+    httpMethod(asJava.trace(uri, _))
+  }
+
+  def patch(uri: String): HttpClientRequest = {
+    httpMethod(asJava.patch(uri, _))
+  }
+
+  def request(method: HttpMethod, uri: String): HttpClientRequest = {
+    httpMethod(asJava.request(method.name, uri, _))
+  }
+
   private def httpMethod(method: Promise[HttpClientResponse] => JHttpClientRequest): HttpClientRequest = {
     val p = Promise[HttpClientResponse]()
     val clientRequest = method(p)
