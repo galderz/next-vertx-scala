@@ -6,7 +6,9 @@ final class Buffer private[scala] (val asJava: JBuffer) extends AnyVal {
 
   def length(): Int = asJava.length()
 
-  def string(enc: String = "UTF-8"): String = asJava.toString(enc)
+  override def toString: String = asJava.toString
+
+  def toString(enc: String = "UTF-8"): String = asJava.toString(enc)
 
 }
 

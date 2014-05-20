@@ -18,6 +18,10 @@ class HttpClientResponse private[scala] (val asJava: JHttpClientResponse) extend
     }
   }
 
+  def headers(): List[HttpHeader] = {
+    asJava.headers()
+  }
+
 }
 
 object HttpClientResponse {

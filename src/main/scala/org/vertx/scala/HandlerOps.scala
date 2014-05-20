@@ -4,8 +4,10 @@ import org.vertx.java.core.{AsyncResult, Handler}
 import scala.language.implicitConversions
 import scala.concurrent.{Future, Promise}
 import org.vertx.java.core.streams.ReadSupport
-import org.vertx.scala.core.http.HttpClientResponse
+import org.vertx.scala.core.http.{HttpServer, HttpServerResponse, HttpClientResponse}
 import org.vertx.java.core.http.{ HttpClientResponse => JHttpClientResponse }
+import org.vertx.java.core.http.{ HttpServerResponse => JHttpServerResponse }
+import org.vertx.java.core.http.{HttpServer => JHttpServer }
 
 object HandlerOps {
 
@@ -27,11 +29,14 @@ object HandlerOps {
       }
     }
 
-  implicit def toVoidHandlerAR[T](promise: => Promise[Unit]): Handler[AsyncResult[Void]] =
-    toHandlerAR[Void](promise.asInstanceOf[Promise[Void]])
+  implicit def toVoidHandlerAR[T](p: => Promise[Unit]): Handler[AsyncResult[Void]] =
+    toHandlerAR[Void](p.asInstanceOf[Promise[Void]])
 
-  implicit def promiseHttpCRToHandlerWithPause(promise: Promise[HttpClientResponse]): Handler[JHttpClientResponse] =
-    promiseToHandlerWithPause(HttpClientResponse.apply)(promise)
+  implicit def promiseHttpCRToHandlerWithPause(p: Promise[HttpClientResponse]): Handler[JHttpClientResponse] =
+    promiseToHandlerWithPause(HttpClientResponse.apply)(p)
+
+  implicit def promiseHttpServerToHandlerAR(promise: Promise[HttpServer]): Handler[AsyncResult[JHttpServer]] =
+    promiseToHandlerAR(HttpServer.apply)(promise)
 
   def promiseToHandlerAR[S, J](mapFunc: J => S)(promise: Promise[S]): Handler[AsyncResult[J]] =
     new Handler[AsyncResult[J]]() {

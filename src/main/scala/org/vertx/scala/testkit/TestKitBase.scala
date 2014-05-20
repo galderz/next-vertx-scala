@@ -7,6 +7,8 @@ import org.vertx.scala.HandlerOps._
 import org.vertx.scala.core.{VertxExecutionContext, Vertx}
 import scala.collection.mutable
 import scala.concurrent.{Future, Await, Promise}
+import java.io.{FileOutputStream, OutputStreamWriter, BufferedWriter, File}
+import scala.annotation.tailrec
 
 trait TestKitBase extends BeforeAndAfterAll with Matchers { this: Suite =>
 
@@ -62,6 +64,49 @@ object TestKitBase {
 
   def await[T](future: Future[T]): T = {
     Await.result(future, (DefaultTimeout * TestTimeFactor).seconds)
+  }
+
+  def generateFile(filename: String, len: Int): (File, String) = {
+    val content = generateUnicodeString(len)
+    val file = createFile(filename, content)
+    (file, content)
+  }
+
+  def generateFile(filename: String, content: String): (File, String) = {
+    val file = createFile(filename, content)
+    (file, content)
+  }
+
+  private def createFile(filename: String, content: String): File = {
+    val file = new File(System.getProperty("java.io.tmpdir"), filename)
+    if (file.exists())
+      file.delete()
+
+    val out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"))
+    try {
+      out.write(content)
+    } finally {
+      out.close()
+    }
+
+    file
+  }
+
+  def generateUnicodeString(length: Int): String = {
+    val builder = new StringBuilder(length)
+    for (i <- 0 until length) {
+      @tailrec def generateChar(): Char = {
+        val c = (0xFFFF * Math.random()).toChar
+        // Skip illegal chars
+        if ((c >= 0xFFFE && c <= 0xFFFF) || (c >= 0xD800 && c <= 0xDFFF))
+          generateChar()
+        else
+          c
+      }
+
+      builder.append(generateChar())
+    }
+    builder.toString()
   }
 
   private def findURLs(): Option[Array[URL]] = {

@@ -22,7 +22,7 @@ final class HttpServer private[scala] (val asJava: JHttpServer) extends AnyVal {
   def compression(): Boolean = asJava.isCompressionSupported
 
   def listen(port: Int, host: String = "0.0.0.0")(implicit ec: ExecutionContext): Future[HttpServer] = {
-    future[HttpServer](p => asJava.listen(port, host, promiseToHandlerAR(HttpServer.apply)(p)))
+    future[HttpServer](p => asJava.listen(port, host, p))
   }
 
   def close(): Future[Unit] = {

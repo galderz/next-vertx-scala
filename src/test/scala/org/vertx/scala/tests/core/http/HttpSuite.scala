@@ -2,10 +2,14 @@ package org.vertx.scala.tests.core.http
 
 import org.scalatest.FunSuite
 import org.vertx.scala.testkit.TestKitBase
+import org.vertx.scala.testkit.TestKitBase._
 import org.vertx.scala.core.http._
 import org.vertx.scala._
 import java.net.UnknownHostException
 import org.vertx.scala.core.http.HttpMethods._
+import org.vertx.scala.core.http.HttpHeaders._
+import org.vertx.scala.core.http.MediaTypes._
+import java.io.File
 
 class HttpSuite extends FunSuite with TestKitBase {
 
@@ -27,7 +31,7 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.string() shouldBe "hello world!"
+        body.toString shouldBe "hello world!"
       }
     }
   }
@@ -50,7 +54,7 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.string() shouldBe "hello encrypted world!"
+        body.toString shouldBe "hello encrypted world!"
       }
     }
   }
@@ -126,7 +130,7 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        body.string() shouldBe msg
+        body.toString shouldBe msg
       }
     }
   }
@@ -149,6 +153,75 @@ class HttpSuite extends FunSuite with TestKitBase {
       } yield {
         resp.status() shouldBe StatusCodes.OK
         body.length() shouldBe 0
+      }
+    }
+  }
+
+  test("An HTTP server can respond sending a file") {
+    val (file, content) = generateFile("test-send-file.html", 10000)
+    verticle {
+      val server = createHttpServer().handler[HttpServerRequest](_.response().sendFile(file))
+      for {
+        listening <- server.listen(testPort)
+        resp <- createHttpClient().port(testPort).getNow("some-uri")
+        body <- resp.body()
+      } yield {
+        resp.status() shouldBe StatusCodes.OK
+        resp.headers() should contain(`Content-Length`(file.length()))
+        resp.headers() should contain(`Content-Type`(MediaTypes.`text/html`))
+        body.toString shouldBe content
+      }
+    }
+  }
+
+  test("If an HTTP server can't find the file to send, it should return 404") {
+    verticle {
+      val doesNotExistFile = new File("doesnotexist.html")
+      val server = createHttpServer().handler[HttpServerRequest](_.response().sendFile(doesNotExistFile))
+      for {
+        listening <- server.listen(testPort)
+        resp <- createHttpClient().port(testPort).getNow("some-uri")
+        body <- resp.body()
+      } yield {
+        resp.status() shouldBe StatusCodes.NotFound
+        resp.headers() should contain(`Content-Type`(MediaTypes.`text/html`))
+        body.toString shouldBe "<html><body>Resource not found</body><html>"
+      }
+    }
+  }
+
+  test("If an HTTP server can't find the file to send, it can respond with a 404 page") {
+    verticle {
+      val (fallbackFile, content) = generateFile("my-404-page.html", "<html><body>This is my 404 page</body></html>")
+      val server = createHttpServer().handler[HttpServerRequest](
+        _.response().sendFile(new File("doesnotexist.html"), Some(fallbackFile))
+      )
+      for {
+        listening <- server.listen(testPort)
+        resp <- createHttpClient().port(testPort).getNow("some-uri")
+        body <- resp.body()
+      } yield {
+        resp.status() shouldBe StatusCodes.NotFound
+        resp.headers() should contain(`Content-Type`(MediaTypes.`text/html`))
+        body.toString shouldBe content
+      }
+    }
+  }
+
+  test("An HTTP server can respond sending a file and overriding HTTP headers") {
+    val (file, content) = generateFile("test-send-file.html", 10000)
+    verticle {
+      val server = createHttpServer().handler[HttpServerRequest](
+        _.response().putHeader(`Content-Type`(`text/plain`)).sendFile(file))
+      for {
+        listening <- server.listen(testPort)
+        resp <- createHttpClient().port(testPort).getNow("some-uri")
+        body <- resp.body()
+      } yield {
+        resp.status() shouldBe StatusCodes.OK
+        resp.headers() should contain(`Content-Length`(file.length()))
+        resp.headers() should contain(`Content-Type`(`text/plain`))
+        body.toString shouldBe content
       }
     }
   }
