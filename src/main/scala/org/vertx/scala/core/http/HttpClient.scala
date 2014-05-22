@@ -14,8 +14,9 @@ final class HttpClient private[scala] (val asJava: JHttpClient) extends AnyVal {
 
   def port(): Int = asJava.getPort
 
-  def compression(compression: Boolean): HttpClient = {
-    asJava.setTryUseCompression(compression); this
+  // TODO: Extract CompressionOps
+  def compression(compression: Compression): HttpClient = {
+    asJava.setTryUseCompression(compression.enabled()); this
   }
 
   def compression(): Boolean = asJava.getTryUseCompression

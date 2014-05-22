@@ -1,23 +1,29 @@
 package org.vertx.scala.tests.core.http
 
+import java.io.File
+import java.net.{URLEncoder, UnknownHostException}
 import org.scalatest.FunSuite
+import org.vertx.scala._
+import org.vertx.scala.core.buffer.Buffer
+import org.vertx.scala.core.http.HttpHeaders._
+import org.vertx.scala.core.http.HttpMethods._
+import org.vertx.scala.core.http.MediaTypes._
+import org.vertx.scala.core.http._
 import org.vertx.scala.testkit.TestKitBase
 import org.vertx.scala.testkit.TestKitBase._
-import org.vertx.scala.core.http._
-import org.vertx.scala._
-import java.net.UnknownHostException
-import org.vertx.scala.core.http.HttpMethods._
-import org.vertx.scala.core.http.HttpHeaders._
-import org.vertx.scala.core.http.MediaTypes._
-import java.io.File
+import scala.concurrent.Promise
 
 class HttpSuite extends FunSuite with TestKitBase {
 
   val testPort = 8844
 
-  def createHttpServer(): HttpServer = vertx.createHttpServer()
+  val compression: Compression = Uncompressed
 
-  def createHttpClient(): HttpClient = vertx.createHttpClient()
+  private def createHttpServer(): HttpServer =
+    vertx.createHttpServer().compression(compression)
+
+  private def createHttpClient(): HttpClient =
+    vertx.createHttpClient().compression(compression)
 
   // TODO: Add test - An HTTP client should successfully call connect() method
   // TODO: Add test - An HTTP client should successfully send a CONNECT request
@@ -167,11 +173,18 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        resp.headers() should contain(`Content-Length`(file.length()))
         resp.headers() should contain(`Content-Type`(MediaTypes.`text/html`))
         body.toString shouldBe content
+        assertContentLength(resp, file.length())
       }
     }
+  }
+
+  private def assertContentLength(resp: HttpClientResponse, length: Long): Unit = {
+    if (compression.enabled())
+      resp.headers() should not contain anInstanceOf[`Content-Length`]
+    else
+      resp.headers() should contain(`Content-Length`(length))
   }
 
   test("If an HTTP server can't find the file to send, it should return 404") {
@@ -219,9 +232,69 @@ class HttpSuite extends FunSuite with TestKitBase {
         body <- resp.body()
       } yield {
         resp.status() shouldBe StatusCodes.OK
-        resp.headers() should contain(`Content-Length`(file.length()))
         resp.headers() should contain(`Content-Type`(`text/plain`))
         body.toString shouldBe content
+        assertContentLength(resp, file.length())
+      }
+    }
+  }
+
+  test("An HTTP client should be able to upload form attributes via URL with encoding") {
+    verticle {
+      val form = Promise[MultiMap]()
+      val server = createMultiPartHttpServer(form)
+      for {
+        listening <- server.listen(testPort)
+        encoded = URLEncoder.encode("vert x", "UTF-8")
+        data = Buffer().append(s"framework=$encoded&runson=jvm", "UTF-8")
+        resp <- createHttpClient().port(testPort).post("/form")
+          .putHeader(`Content-Length`(data.length()))
+          .putHeader(`Content-Type`(`application/x-www-form-urlencoded`))
+          .write(data).end()
+        body <- resp.body()
+        attributes <- form.future
+      } yield {
+        resp.status() shouldBe StatusCodes.OK
+        body.length() shouldBe 0
+        attributes.size shouldBe 2
+        attributes("framework").head shouldBe "vert x"
+        attributes("runson").head shouldBe "jvm"
+      }
+    }
+  }
+
+  test("An HTTP client should be able to upload repeated form attributes via URL") {
+    verticle {
+      val form = Promise[MultiMap]()
+      val server = createMultiPartHttpServer(form)
+      for {
+        listening <- server.listen(testPort)
+        data = Buffer().append("origin=unittest&origin=scalatest&login=admin%40foo.bar&pass+word=admin")
+        resp <- createHttpClient().port(testPort).post("/form")
+          .putHeader(`Content-Length`(data.length()))
+          .putHeader(`Content-Type`(`application/x-www-form-urlencoded`))
+          .write(data).end()
+        body <- resp.body()
+        attributes <- form.future
+      } yield {
+        resp.status() shouldBe StatusCodes.OK
+        body.length() shouldBe 0
+        attributes.size shouldBe 3
+        attributes("origin") should contain("unittest")
+        attributes("origin") should contain("scalatest")
+        attributes("login").head shouldBe "admin@foo.bar"
+        attributes("pass word").head shouldBe "admin"
+      }
+    }
+  }
+
+  private def createMultiPartHttpServer(form: Promise[MultiMap]): HttpServer = {
+    createHttpServer().handler[HttpServerRequest] { req =>
+      if (req.uri().startsWith("/form")) {
+        req.response().chunked(chunked = true)
+        req.expectMultiPart(expect = true)
+        req.end().map(_ => form.success(req.formAttributes()))
+        req.response().end()
       }
     }
   }

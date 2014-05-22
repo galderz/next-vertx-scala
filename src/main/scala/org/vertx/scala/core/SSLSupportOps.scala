@@ -3,7 +3,6 @@ package org.vertx.scala.core
 import org.vertx.java.core.{ SSLSupport => JSSLSupport }
 
 final class SSLSupportOps[J <: JSSLSupport[_], S] private[scala] (asJava: J, asScala: S) {
-  // Ideally, it should be an AnyVal...
 
   def ssl(ssl: Boolean): S = {
     asJava.setSSL(ssl); asScala

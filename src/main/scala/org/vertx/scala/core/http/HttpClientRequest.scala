@@ -11,6 +11,10 @@ final class HttpClientRequest private[scala]
     future
   }
 
+  def putHeader(header: HttpHeader): HttpClientRequest = {
+    asJava.putHeader(header.name, header.value); this
+  }
+
 }
 
 object HttpClientRequest {

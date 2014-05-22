@@ -8,6 +8,8 @@ import java.io.File
 
 final class HttpServerResponse private[scala] (val asJava: JHttpServerResponse) extends AnyVal {
 
+  def end(): Unit = asJava.end()
+
   def end(chunk: String, enc: String = "UTF-8"): Unit = asJava.end(chunk, enc)
 
   def sendFile(filename: File, notFoundResource: Option[File] = None): Future[Unit] = {
@@ -18,6 +20,10 @@ final class HttpServerResponse private[scala] (val asJava: JHttpServerResponse) 
 
   def putHeader(header: HttpHeader): HttpServerResponse = {
     asJava.putHeader(header.name, header.value); this
+  }
+
+  def chunked(chunked: Boolean): HttpServerResponse = {
+    asJava.setChunked(chunked); this
   }
 
 }

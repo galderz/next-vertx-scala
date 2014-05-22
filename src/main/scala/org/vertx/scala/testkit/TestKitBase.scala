@@ -9,6 +9,7 @@ import scala.collection.mutable
 import scala.concurrent.{Future, Await, Promise}
 import java.io.{FileOutputStream, OutputStreamWriter, BufferedWriter, File}
 import scala.annotation.tailrec
+import org.scalatest.matchers.{BePropertyMatchResult, BePropertyMatcher}
 
 trait TestKitBase extends BeforeAndAfterAll with Matchers { this: Suite =>
 
@@ -107,6 +108,15 @@ object TestKitBase {
       builder.append(generateChar())
     }
     builder.toString()
+  }
+
+  def anInstanceOf[T](implicit manifest: Manifest[T]) = {
+    val clazz = manifest.runtimeClass.asInstanceOf[Class[T]]
+    new BePropertyMatcher[AnyRef] {
+      def apply(left: AnyRef) =
+        BePropertyMatchResult(clazz.isAssignableFrom(left.getClass),
+          "an instance of " + clazz.getName)
+    }
   }
 
   private def findURLs(): Option[Array[URL]] = {

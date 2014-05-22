@@ -16,6 +16,11 @@ object HandlerOps {
       override def handle(event: Void) = action
     }
 
+  implicit def promiseVoidHandler(p: => Promise[Unit]): Handler[Void] =
+    new Handler[Void]() {
+      override def handle(event: Void) = p.success(Unit)
+    }
+
   implicit def toThrowableHandler[T](promise: => Promise[T]): Handler[Throwable] =
     new Handler[Throwable]() {
       override def handle(event: Throwable) = promise.failure(event)
@@ -29,7 +34,7 @@ object HandlerOps {
       }
     }
 
-  implicit def toVoidHandlerAR[T](p: => Promise[Unit]): Handler[AsyncResult[Void]] =
+  implicit def promiseVoidHandlerAR[T](p: => Promise[Unit]): Handler[AsyncResult[Void]] =
     toHandlerAR[Void](p.asInstanceOf[Promise[Void]])
 
   implicit def promiseHttpCRToHandlerWithPause(p: Promise[HttpClientResponse]): Handler[JHttpClientResponse] =

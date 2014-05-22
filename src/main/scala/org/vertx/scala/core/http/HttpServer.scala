@@ -1,6 +1,5 @@
 package org.vertx.scala.core.http
 
-import org.vertx.java.core.http.{ HttpServerRequest => JHttpServerRequest }
 import org.vertx.java.core.http.{HttpServer => JHttpServer }
 import org.vertx.scala.FutureOps._
 import org.vertx.scala.HandlerOps._
@@ -15,8 +14,9 @@ final class HttpServer private[scala] (val asJava: JHttpServer) extends AnyVal {
     handlerLike.handle(f, this); this
   }
 
-  def compression(compression: Boolean): HttpServer = {
-    asJava.setCompressionSupported(compression); this
+  // TODO: Extract CompressionOps
+  def compression(compression: Compression): HttpServer = {
+    asJava.setCompressionSupported(compression.enabled()); this
   }
 
   def compression(): Boolean = asJava.isCompressionSupported

@@ -22,5 +22,6 @@ object MediaTypes {
 
   val `text/html` = MediaType("text", "html")
   val `text/plain` = MediaType("text", "plain")
+  val `application/x-www-form-urlencoded` = MediaType("application", "x-www-form-urlencoded")
 
 }
